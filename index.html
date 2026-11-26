@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Duo French" />
+  <meta name="theme-color" content="#58CC02" />
+  <title>Duolingo French — Learn French for Adults</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --duo-green: #58CC02; --duo-green-dark: #58A700; --duo-green-light: #D7FFB8;
+      --duo-blue: #1CB0F6; --duo-blue-dark: #1899D6; --duo-gold: #FFC800; --duo-gold-dark: #E5A900;
+      --duo-orange: #FF9600; --duo-red: #FF4B4B; --duo-red-dark: #EA2B2B; --duo-red-light: #FFDFE0;
+      --duo-purple: #CE82FF; --duo-purple-dark: #A568CC; --duo-border: #E5E5E5; --duo-text: #3C3C3C;
+    }
+    html, body { overscroll-behavior-y: contain; -webkit-text-size-adjust: 100%; }
+    .ios-safe-top { padding-top: max(10px, env(safe-area-inset-top)); }
+    .ios-safe-bottom { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+    .h-dvh-screen { height: 100vh; height: 100dvh; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--duo-text); background: #fff; margin: 0; overflow-x: hidden; }
+    .duo-btn { transition: transform 0.08s ease, background-color 0.15s ease; user-select: none; cursor: pointer; }
+    .duo-btn:active:not(:disabled) { transform: translateY(2px); }
+    .duo-btn-green { background: #58CC02; color: #fff; border: 2px solid #58A700; border-bottom-width: 4px; }
+    .duo-btn-green:hover:not(:disabled) { background: #61E002; }
+    .duo-btn-green:active:not(:disabled) { border-bottom-width: 2px; margin-top: 2px; }
+    .duo-btn-green:disabled { background: #E5E5E5; border-color: #E5E5E5; color: #AFAFAF; cursor: not-allowed; }
+    .duo-btn-blue { background: #1CB0F6; color: #fff; border: 2px solid #1899D6; border-bottom-width: 4px; }
+    .duo-btn-blue:hover:not(:disabled) { background: #2EC0FF; }
+    .duo-btn-blue:active:not(:disabled) { border-bottom-width: 2px; margin-top: 2px; }
+    .duo-btn-red { background: #FF4B4B; color: #fff; border: 2px solid #EA2B2B; border-bottom-width: 4px; }
+    .duo-btn-white { background: #fff; color: #3C3C3C; border: 2px solid #E5E5E5; border-bottom-width: 4px; }
+    .duo-btn-white:hover:not(:disabled) { background: #F7F7F7; }
+    .duo-card-choice { background: #fff; border: 2px solid #E5E5E5; border-bottom-width: 4px; border-radius: 16px; transition: all 0.1s ease; cursor: pointer; }
+    .duo-card-choice:hover:not(:disabled) { background: #F7F7F7; }
+    .duo-card-choice.selected { background: #DDF4FF; border-color: #84D8FF; color: #1899D6; }
+    .duo-card-choice.correct { background: #D7FFB8; border-color: #58A700; color: #58A700; }
+    .duo-card-choice.wrong { background: #FFDFE0; border-color: #FF4B4B; color: #EA2B2B; }
+    .word-tile { background: #fff; border: 2px solid #E5E5E5; border-bottom-width: 4px; border-radius: 14px; padding: 8px 14px; font-weight: 700; font-size: 15px; color: #3C3C3C; cursor: pointer; user-select: none; }
+    .word-tile.used { background: #E5E5E5; border-color: #E5E5E5; color: transparent; pointer-events: none; }
+    @keyframes floatBob { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+    .animate-bob { animation: floatBob 2s ease-in-out infinite; }
+    @keyframes popIn { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .animate-pop { animation: popIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    .animate-shake { animation: shake 0.25s ease-in-out; }
+    .path-node-btn { width: 72px; height: 66px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: transform 0.1s ease; }
+    .path-node-btn:active { transform: translateY(4px); }
+  </style>
+</head>
+<body class="bg-white min-h-screen">
+  <div id="app-shell" class="min-h-screen flex flex-col md:flex-row">
+    <aside class="hidden md:flex flex-col w-20 lg:w-64 border-r-2 border-[#E5E5E5] bg-white sticky top-0 h-screen px-3 lg:px-4 py-6 justify-between shrink-0 z-20">
+      <div>
+        <div class="flex items-center gap-2.5 px-3 mb-7 cursor-pointer" onclick="switchTab('learn')">
+          <div class="w-9 h-9 shrink-0" id="sidebar-owl-logo"></div>
+          <span class="hidden lg:inline text-2xl font-black tracking-tight text-[#58CC02]">duolingo</span>
+        </div>
+        <nav class="flex flex-col gap-1.5" id="desktop-nav"></nav>
+      </div>
+      <div class="hidden lg:flex flex-col gap-2 px-2 pt-4 border-t-2 border-[#F0F0F0]">
+        <button onclick="toggleSoundEffects()" id="sfx-toggle-btn" class="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold text-[#777777] hover:bg-[#F7F7F7]">
+          <span class="flex items-center gap-2">🔊 Sound FX</span>
+          <span id="sfx-status" class="text-xs px-2 py-0.5 rounded-full bg-[#D7FFB8] text-[#58A700]">ON</span>
+        </button>
+        <button onclick="toggleSpeechVoice()" id="voice-toggle-btn" class="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-bold text-[#777777] hover:bg-[#F7F7F7]">
+          <span class="flex items-center gap-2">🗣️ French Audio</span>
+          <span id="voice-status" class="text-xs px-2 py-0.5 rounded-full bg-[#D7FFB8] text-[#58A700]">ON</span>
+        </button>
+      </div>
+    </aside>
+
+    <header class="md:hidden sticky top-0 z-30 bg-white border-b-2 border-[#E5E5E5] px-4 py-2.5 ios-safe-top flex items-center justify-between">
+      <div class="flex items-center gap-2"><span class="text-xl">🇫🇷</span><span class="font-black text-sm text-[#3C3C3C]">FRENCH</span></div>
+      <div class="flex items-center gap-4 font-extrabold text-sm" id="mobile-stats-bar"></div>
+    </header>
+
+    <main class="flex-1 min-w-0 pb-24 md:pb-12"><div id="main-content" class="max-w-2xl mx-auto px-4 pt-4 md:pt-7"></div></main>
+
+    <aside class="hidden xl:flex flex-col w-96 border-l-2 border-[#E5E5E5] bg-white sticky top-0 h-screen px-6 py-6 gap-5 overflow-y-auto shrink-0">
+      <div class="flex items-center justify-between gap-2 px-1" id="desktop-stats-bar"></div>
+      <div class="border-2 border-[#E5E5E5] rounded-2xl p-4 bg-white">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-black uppercase tracking-wider text-[#1CB0F6] bg-[#DDF4FF] px-2.5 py-1 rounded-lg">CEFR A1 • Adult Track</span>
+          <span id="sidebar-words-count" class="text-xs font-extrabold text-[#777777]">0 words</span>
+        </div>
+        <h3 class="font-black text-base text-[#3C3C3C] mb-1">Practical French</h3>
+        <p class="text-xs font-semibold text-[#777777] mb-3">Real-world café, travel, dining &amp; workplace conversations.</p>
+        <div class="w-full h-3 bg-[#E5E5E5] rounded-full overflow-hidden"><div id="cefr-progress-bar" class="h-full bg-[#58CC02] rounded-full transition-all duration-500" style="width: 8%"></div></div>
+      </div>
+      <div class="border-2 border-[#E5E5E5] rounded-2xl p-4 bg-white">
+        <div class="flex items-center justify-between mb-3"><h3 class="font-black text-lg text-[#3C3C3C]">Daily Quests</h3><button onclick="switchTab('quests')" class="text-xs font-extrabold uppercase tracking-wider text-[#1CB0F6] hover:underline">View all</button></div>
+        <div id="sidebar-quests-list" class="flex flex-col gap-3"></div>
+      </div>
+      <div class="border-2 border-[#E5E5E5] rounded-2xl p-4 bg-white">
+        <div class="flex items-center justify-between mb-2"><h3 class="font-black text-lg text-[#3C3C3C]">Sapphire League</h3><button onclick="switchTab('leaderboards')" class="text-xs font-extrabold uppercase tracking-wider text-[#1CB0F6] hover:underline">View league</button></div>
+        <p id="sidebar-league-summary" class="text-sm font-bold text-[#777777] mb-3"></p>
+        <div id="sidebar-league-mini" class="flex flex-col gap-2"></div>
+      </div>
+    </aside>
+
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t-2 border-[#E5E5E5] flex items-center justify-around py-2 px-1 ios-safe-bottom" id="mobile-nav"></nav>
+  </div>
+
+  <div id="lesson-overlay" class="fixed inset-0 z-50 bg-white hidden flex-col h-dvh-screen ios-safe-top ios-safe-bottom">
+    <div class="max-w-4xl w-full mx-auto px-4 sm:px-6 pt-5 pb-3 flex items-center gap-4">
+      <button onclick="confirmExitLesson()" class="text-[#AFAFAF] hover:text-[#777777] p-1 rounded-lg" aria-label="Exit lesson">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="flex-1 h-4 bg-[#E5E5E5] rounded-full overflow-hidden relative"><div id="lesson-progress-bar" class="h-full bg-[#58CC02] rounded-full transition-all duration-300 relative" style="width: 0%"><div class="absolute top-1 left-2 right-2 h-1 bg-[#89E219] rounded-full opacity-70"></div></div></div>
+      <div class="flex items-center gap-1.5 font-black text-[#FF4B4B] text-lg shrink-0"><span>❤️</span><span id="lesson-hearts-count">5</span></div>
+    </div>
+    <div class="flex-1 overflow-y-auto flex items-center justify-center px-4 py-4"><div id="lesson-stage" class="max-w-2xl w-full"></div></div>
+    <div id="lesson-footer" class="border-t-2 border-[#E5E5E5] bg-white"><div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-3" id="lesson-footer-inner"></div></div>
+  </div>
+
+  <div id="story-overlay" class="fixed inset-0 z-50 bg-white hidden flex-col h-dvh-screen ios-safe-top ios-safe-bottom">
+    <div class="max-w-3xl w-full mx-auto px-4 sm:px-6 pt-5 pb-3 flex items-center gap-4">
+      <button onclick="closeStory()" class="text-[#AFAFAF] hover:text-[#777777] p-1 rounded-lg"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      <div class="flex-1 h-4 bg-[#E5E5E5] rounded-full overflow-hidden"><div id="story-progress-bar" class="h-full bg-[#CE82FF] rounded-full transition-all duration-300" style="width: 10%"></div></div>
+      <span class="text-xs font-black uppercase tracking-wider text-[#CE82FF] bg-[#F5E8FF] px-2.5 py-1 rounded-lg">Story</span>
+    </div>
+    <div class="flex-1 overflow-y-auto px-4 py-6"><div id="story-stage" class="max-w-xl mx-auto flex flex-col gap-4 pb-10"></div></div>
+    <div class="border-t-2 border-[#E5E5E5] bg-white px-4 py-4"><div class="max-w-3xl mx-auto flex justify-end"><button id="story-continue-btn" onclick="advanceStory()" class="duo-btn duo-btn-green px-8 py-3 rounded-2xl font-black uppercase tracking-wider text-sm w-full sm:w-auto">Continue</button></div></div>
+  </div>
+
+  <div id="modal-backdrop" class="fixed inset-0 z-50 bg-black/50 hidden items-center justify-center p-4" onclick="if(event.target===this) closeModal()">
+    <div id="modal-content" class="bg-white rounded-3xl max-w-lg w-full p-6 border-2 border-[#E5E5E5] animate-pop max-h-[88vh] overflow-y-auto"></div>
+  </div>
+  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-[60] pointer-events-none flex flex-col gap-2"></div>
+
+<script>
+function getOwlSVG(mood = 'happy', size = 64) {
+  const eyeColor = mood === 'sad' ? '#4B4B4B' : '#111111';
+  const mouth = mood === 'cheering' ? `<path d="M44 58 Q50 67 56 58 Z" fill="#D94E1F"/><ellipse cx="50" cy="56" rx="6" ry="4" fill="#FF9600"/>` : `<polygon points="44,54 56,54 50,62" fill="#FF9600"/>`;
+  const brows = mood === 'sad' ? `<path d="M24 30 L38 35" stroke="#58A700" stroke-width="3.5" stroke-linecap="round"/><path d="M76 30 L62 35" stroke="#58A700" stroke-width="3.5" stroke-linecap="round"/>` : '';
+  const wings = mood === 'cheering' ? `<ellipse cx="14" cy="48" rx="10" ry="18" transform="rotate(-35 14 48)" fill="#58A700"/><ellipse cx="86" cy="48" rx="10" ry="18" transform="rotate(35 86 48)" fill="#58A700"/>` : `<ellipse cx="16" cy="60" rx="8" ry="15" transform="rotate(10 16 60)" fill="#58A700"/><ellipse cx="84" cy="60" rx="8" ry="15" transform="rotate(-10 84 60)" fill="#58A700"/>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" fill="none"><g>${wings}<ellipse cx="50" cy="56" rx="34" ry="34" fill="#58CC02"/><path d="M21 32 L17 16 L34 25 Z" fill="#58CC02"/><path d="M79 32 L83 16 L66 25 Z" fill="#58CC02"/><ellipse cx="50" cy="71" rx="19" ry="15" fill="#89E219"/><circle cx="35" cy="45" r="16" fill="#89E219"/><circle cx="65" cy="45" r="16" fill="#89E219"/><circle cx="35" cy="45" r="12" fill="#FFF"/><circle cx="65" cy="45" r="12" fill="#FFF"/><circle cx="37" cy="45" r="6.5" fill="${eyeColor}"/><circle cx="63" cy="45" r="6.5" fill="${eyeColor}"/><circle cx="39" cy="42.5" r="2.2" fill="#FFF"/><circle cx="65" cy="42.5" r="2.2" fill="#FFF"/>${brows}${mouth}<ellipse cx="38" cy="90" rx="7" ry="4" fill="#FF9600"/><ellipse cx="62" cy="90" rx="7" ry="4" fill="#FF9600"/></g></svg>`;
+}
+function getCharacterSVG(charName = 'bea', size = 68) {
+  const configs = { bea: { bg: '#DDF4FF', hair: '#3B2314', skin: '#C68642', shirt: '#1CB0F6', glasses: false }, viktor: { bg: '#F5E8FF', hair: '#2B2B2B', skin: '#F1C27D', shirt: '#CE82FF', glasses: true }, lily: { bg: '#FFE8F5', hair: '#7D3C98', skin: '#FFDBAC', shirt: '#58CC02', glasses: false }, eddy: { bg: '#FFF4D6', hair: '#B9770E', skin: '#F1C27D', shirt: '#FF4B4B', glasses: false } };
+  const c = configs[charName] || configs.bea;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="38" fill="${c.bg}" stroke="#E5E5E5" stroke-width="2"/><path d="M18 72 C18 56 62 56 62 72" fill="${c.shirt}"/><circle cx="40" cy="36" r="17" fill="${c.skin}"/><path d="M22 34 C22 18 58 18 58 34 C54 24 26 24 22 34 Z" fill="${c.hair}"/><circle cx="34" cy="37" r="2.5" fill="#222"/><circle cx="46" cy="37" r="2.5" fill="#222"/>${c.glasses ? `<circle cx="34" cy="37" r="6" stroke="#333" stroke-width="2" fill="none"/><circle cx="46" cy="37" r="6" stroke="#333" stroke-width="2" fill="none"/>` : ''}<path d="M35 45 Q40 49 45 45" stroke="#222" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>`;
+}
+
+let audioCtx = null, iosAudioUnlocked = false;
+function unlockIOSAudio() {
+  if (iosAudioUnlocked) return;
+  iosAudioUnlocked = true;
+  ensureAudioCtx();
+  try { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); } catch (e) {}
+}
+document.addEventListener('touchstart', unlockIOSAudio, { once: true, passive: true });
+document.addEventListener('click', unlockIOSAudio, { once: true, passive: true });
+function ensureAudioCtx() {
+  if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+function playSound(type) {
+  if (!state.settings.sfx) return;
+  try {
+    ensureAudioCtx(); if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    if (type === 'tap') {
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(660, now + 0.04);
+      gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now); osc.stop(now + 0.05);
+    } else if (type === 'correct') {
+      [523.25, 659.25, 783.99].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, now + i * 0.06);
+        gain.gain.setValueAtTime(0.14, now + i * 0.06); gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.22);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now + i * 0.06); osc.stop(now + i * 0.06 + 0.24);
+      });
+    } else if (type === 'wrong') {
+      [220, 185].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, now + i * 0.11);
+        gain.gain.setValueAtTime(0.08, now + i * 0.11); gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.16);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now + i * 0.11); osc.stop(now + i * 0.11 + 0.18);
+      });
+    } else if (type === 'complete') {
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, now + i * 0.09);
+        gain.gain.setValueAtTime(0.16, now + i * 0.09); gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.35);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now + i * 0.09); osc.stop(now + i * 0.09 + 0.36);
+      });
+    }
+  } catch (e) {}
+}
+function speakFrench(text, slow = false) {
+  if (!state.settings.voice) return;
+  try {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'fr-FR'; utter.rate = slow ? 0.62 : 0.92;
+    const frVoice = window.speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith('fr'));
+    if (frVoice) utter.voice = frVoice;
+    window.speechSynthesis.speak(utter);
+  } catch (e) {}
+}
+
+const UNITS = [
+  { id: 'u1', number: 1, title: 'Café & First Impressions', subtitle: 'Order politely, greet people, and use tu vs. vous', color: '#58CC02', darkColor: '#58A700',
+    guidebook: {
+      tips: [
+        { title: 'Polite "Vous" vs. Casual "Tu"', body: 'As an adult in France, always use <strong>vous</strong> with strangers, waiters, colleagues, and shopkeepers.' },
+        { title: '"Je voudrais" (I would like)', body: 'Never say "Je veux" at a café. Use <strong>Je voudrais un café, s\'il vous plaît</strong>.' },
+        { title: 'Silent Final Letters', body: 'Final consonants like <strong>-s, -t, -d, -x</strong> are usually silent: <em>croissant</em> sounds like "krwah-sahn".' }
+      ],
+      phrases: [
+        { fr: 'Bonjour, je voudrais un café crème.', en: 'Hello, I would like a coffee with milk.' },
+        { fr: 'L’addition, s’il vous plaît.', en: 'The check, please.' },
+        { fr: 'Enchanté(e), je m’appelle Alex.', en: 'Nice to meet you, my name is Alex.' },
+        { fr: 'Excusez-moi, parlez-vous anglais ?', en: 'Excuse me, do you speak English?' }
+      ]
+    },
+    nodes: [
+      { id: 'u1_l1', type: 'lesson', title: 'Polite Café Basics', icon: '☕', xp: 15 },
+      { id: 'u1_l2', type: 'lesson', title: 'Introductions & Vous', icon: '👋', xp: 15 },
+      { id: 'u1_c1', type: 'chest', title: 'Bonus Chest', gems: 25 },
+      { id: 'u1_l3', type: 'lesson', title: 'Ordering Pastries', icon: '🥐', xp: 20 },
+      { id: 'u1_s1', type: 'story', title: 'Story: Un café à Montmartre', icon: '📖', xp: 25, storyId: 'story_cafe' }
+    ]
+  },
+  { id: 'u2', number: 2, title: 'Getting Around Paris', subtitle: 'Navigate the Métro, ask for directions, buy tickets', color: '#CE82FF', darkColor: '#A568CC',
+    guidebook: {
+      tips: [
+        { title: 'Où est... ? (Where is...?)', body: 'Pair <strong>Excusez-moi, où est... ?</strong> with <strong>le métro</strong> or <strong>la gare</strong>.' },
+        { title: 'Aller simple vs. Aller-retour', body: 'Ask for <strong>un aller simple</strong> (one-way) or <strong>un aller-retour</strong> (round-trip).' }
+      ],
+      phrases: [
+        { fr: 'Où est la station de métro ?', en: 'Where is the subway station?' },
+        { fr: 'Un billet aller-retour pour Lyon, s’il vous plaît.', en: 'A round-trip ticket to Lyon, please.' },
+        { fr: 'C’est à gauche ou à droite ?', en: 'Is it on the left or on the right?' }
+      ]
+    },
+    nodes: [
+      { id: 'u2_l1', type: 'lesson', title: 'Directions & Streets', icon: '🗺️', xp: 15 },
+      { id: 'u2_l2', type: 'lesson', title: 'Métro & Train Tickets', icon: '🚆', xp: 20 },
+      { id: 'u2_c1', type: 'chest', title: 'Bonus Chest', gems: 30 },
+      { id: 'u2_s1', type: 'story', title: 'Story: À la Gare du Nord', icon: '📖', xp: 25, storyId: 'story_gare' }
+    ]
+  },
+  { id: 'u3', number: 3, title: 'Dining, Wine & Bistros', subtitle: 'Book a table, explain dietary preferences, toast', color: '#1CB0F6', darkColor: '#1899D6',
+    guidebook: {
+      tips: [
+        { title: 'Tap Water vs. Sparkling', body: 'Asking for <strong>une carafe d’eau</strong> gets you free tap water in France.' },
+        { title: 'C’était délicieux !', body: 'Use <strong>C’était délicieux</strong> (It was delicious) when paying your bill.' }
+      ],
+      phrases: [
+        { fr: 'Une table pour deux personnes, s’il vous plaît.', en: 'A table for two people, please.' },
+        { fr: 'Je suis végétarien.', en: 'I am vegetarian.' },
+        { fr: 'Un verre de vin rouge, s’il vous plaît.', en: 'A glass of red wine, please.' }
+      ]
+    },
+    nodes: [
+      { id: 'u3_l1', type: 'lesson', title: 'Reserving a Table', icon: '🍽️', xp: 20 },
+      { id: 'u3_l2', type: 'lesson', title: 'Wine & Dietary Needs', icon: '🍷', xp: 20 },
+      { id: 'u3_l3', type: 'lesson', title: 'Paying & Compliments', icon: '💳', xp: 25 }
+    ]
+  },
+  { id: 'u4', number: 4, title: 'Work & Everyday Life', subtitle: 'Meetings, schedules, emails, and polite requests', color: '#FF9600', darkColor: '#CC7800',
+    guidebook: {
+      tips: [
+        { title: 'Time & Schedules', body: 'French often uses the 24-hour clock in business: <strong>14 heures</strong> = 2:00 PM.' },
+        { title: 'J’ai besoin de... (I need...)', body: 'Use <strong>J’ai besoin d’aide</strong> (I need help) or <strong>J’ai besoin du wifi</strong>.' }
+      ],
+      phrases: [
+        { fr: 'J’ai une réunion à dix heures.', en: 'I have a meeting at ten o’clock.' },
+        { fr: 'Pouvez-vous répéter, s’il vous plaît ?', en: 'Could you repeat, please?' },
+        { fr: 'À demain matin !', en: 'See you tomorrow morning!' }
+      ]
+    },
+    nodes: [
+      { id: 'u4_l1', type: 'lesson', title: 'Office & Meetings', icon: '💼', xp: 20 },
+      { id: 'u4_l2', type: 'lesson', title: 'Schedules & Deadlines', icon: '📅', xp: 25 }
+    ]
+  }
+];
+
+const LESSONS_DATA = {
+  u1_l1: [
+    { type: 'choice', character: 'bea', prompt: 'How do you politely ask for a coffee in a French café?', french: 'Bonjour, je voudrais un café, s’il vous plaît.', options: ['Hello, I would like a coffee, please.', 'Goodbye, I want two teas now.', 'Excuse me, where is the bathroom?', 'Good evening, the check please.'], answer: 0, note: '“Je voudrais” (I would like) is the golden polite phrase for ordering as an adult.' },
+    { type: 'wordbank', direction: 'fr-en', prompt: 'Translate this sentence', french: 'L’addition, s’il vous plaît.', englishAnswer: ['The', 'check', 'please'], bank: ['The', 'check', 'please', 'coffee', 'hello', 'water'], note: '“L’addition” literally means “the addition” — the restaurant bill.' },
+    { type: 'match', prompt: 'Tap the matching pairs', pairs: [{ fr: 'Bonjour', en: 'Hello' }, { fr: 'Merci beaucoup', en: 'Thank you very much' }, { fr: 'S’il vous plaît', en: 'Please (formal)' }, { fr: 'Un café', en: 'A coffee' }] },
+    { type: 'listen', prompt: 'Tap what you hear', french: 'Un café crème et un croissant, s’il vous plaît.', tilesAnswer: ['Un', 'café', 'crème', 'et', 'un', 'croissant,', 's’il', 'vous', 'plaît.'], extraTiles: ['thé', 'merci', 'bonjour'], note: 'Notice that “croissant” has a silent final -t.' },
+    { type: 'type', prompt: 'Write this in French', english: 'Thank you very much.', accepted: ['Merci beaucoup', 'Merci beaucoup.'], hint: 'Merci ...', note: '“Beaucoup” means “a lot / very much”.' }
+  ],
+  u1_l2: [
+    { type: 'choice', character: 'viktor', prompt: 'You are meeting a colleague for the first time. What does Viktor mean?', french: 'Enchanté ! Comment vous appelez-vous ?', options: ['Nice to meet you! What is your name?', 'See you later! Where do you live?', 'Excuse me! Do you have the time?', 'Sorry! I do not understand.'], answer: 0, note: '“Comment vous appelez-vous ?” is the formal way to ask someone’s name.' },
+    { type: 'wordbank', direction: 'en-fr', prompt: 'Translate this sentence', english: 'Excuse me, do you speak English?', french: 'Excusez-moi, parlez-vous anglais ?', frenchAnswer: ['Excusez-moi,', 'parlez-vous', 'anglais', '?'], bank: ['Excusez-moi,', 'parlez-vous', 'anglais', '?', 'français', 'merci', 'bonjour'], note: 'Inverting “parlez-vous” makes a polite formal question.' },
+    { type: 'match', prompt: 'Tap the matching pairs', pairs: [{ fr: 'Enchanté', en: 'Nice to meet you' }, { fr: 'Excusez-moi', en: 'Excuse me' }, { fr: 'Je suis américain', en: 'I am American' }, { fr: 'À bientôt', en: 'See you soon' }] },
+    { type: 'speak', prompt: 'Speak this sentence', french: 'Bonjour, je m’appelle Marie.', english: 'Hello, my name is Marie.', note: 'Pronounce “je m’appelle” smoothly as “zhuh mah-pel”.' },
+    { type: 'type', prompt: 'Write this in French', english: 'Excuse me, please.', accepted: ['Excusez-moi, s’il vous plaît', "Excusez-moi, s'il vous plaît", 'Excusez-moi s’il vous plaît', "Excusez-moi s'il vous plait"], hint: 'Excusez-moi, ...' }
+  ],
+  u1_l3: [
+    { type: 'choice', character: 'lily', prompt: 'At the boulangerie, which article goes with “baguette”?', french: 'Je voudrais ___ baguette, s’il vous plaît.', options: ['une', 'un', 'des', 'le'], answer: 0, note: '“Baguette” is feminine, so use “une baguette”.' },
+    { type: 'wordbank', direction: 'fr-en', prompt: 'Translate this sentence', french: 'C’est combien, s’il vous plaît ?', englishAnswer: ['How', 'much', 'is', 'it', 'please'], bank: ['How', 'much', 'is', 'it', 'please', 'where', 'coffee'] },
+    { type: 'listen', prompt: 'Tap what you hear', french: 'Deux croissants et une baguette, merci.', tilesAnswer: ['Deux', 'croissants', 'et', 'une', 'baguette,', 'merci.'], extraTiles: ['un', 'café', 'trois'] },
+    { type: 'type', prompt: 'Write this in French', english: 'I would like a croissant.', accepted: ['Je voudrais un croissant', 'Je voudrais un croissant.'], hint: 'Je voudrais un ...' }
+  ],
+  u2_l1: [
+    { type: 'choice', character: 'eddy', prompt: 'You are lost in Paris. How do you ask where the metro is?', french: 'Excusez-moi, où est le métro ?', options: ['Excuse me, where is the subway?', 'Excuse me, when does the train leave?', 'Hello, I need a taxi.', 'Thank you, the hotel is here.'], answer: 0, note: '“Où” (with the accent!) means “where”.' },
+    { type: 'match', prompt: 'Tap the matching pairs', pairs: [{ fr: 'À gauche', en: 'On the left' }, { fr: 'À droite', en: 'On the right' }, { fr: 'Tout droit', en: 'Straight ahead' }, { fr: 'La rue', en: 'The street' }] },
+    { type: 'wordbank', direction: 'en-fr', prompt: 'Translate this sentence', english: 'Where is the train station?', french: 'Où est la gare ?', frenchAnswer: ['Où', 'est', 'la', 'gare', '?'], bank: ['Où', 'est', 'la', 'gare', '?', 'le', 'métro', 'droite'] },
+    { type: 'type', prompt: 'Write this in French', english: 'On the left, please.', accepted: ['À gauche, s’il vous plaît', "À gauche, s'il vous plaît", 'A gauche, s il vous plait'], hint: 'À gauche, ...' }
+  ],
+  u2_l2: [
+    { type: 'choice', character: 'bea', prompt: 'At the ticket machine, what does “un aller-retour” mean?', french: 'Je voudrais un billet aller-retour pour Paris.', options: ['A round-trip ticket', 'A one-way ticket', 'A first-class seat', 'A platform number'], answer: 0 },
+    { type: 'listen', prompt: 'Tap what you hear', french: 'Le train part à neuf heures.', tilesAnswer: ['Le', 'train', 'part', 'à', 'neuf', 'heures.'], extraTiles: ['métro', 'dix', 'arrive'] },
+    { type: 'wordbank', direction: 'fr-en', prompt: 'Translate this sentence', french: 'Un billet pour Lyon, s’il vous plaît.', englishAnswer: ['A', 'ticket', 'to', 'Lyon', 'please'], bank: ['A', 'ticket', 'to', 'Lyon', 'please', 'from', 'train'] }
+  ],
+  u3_l1: [
+    { type: 'wordbank', direction: 'en-fr', prompt: 'Translate this sentence', english: 'A table for two people, please.', french: 'Une table pour deux personnes, s’il vous plaît.', frenchAnswer: ['Une', 'table', 'pour', 'deux', 'personnes,', 's’il', 'vous', 'plaît.'], bank: ['Une', 'table', 'pour', 'deux', 'personnes,', 's’il', 'vous', 'plaît.', 'trois', 'un'] },
+    { type: 'choice', character: 'viktor', prompt: 'The waiter asks: “Vous avez réservé ?” What is he asking?', french: 'Vous avez réservé ?', options: ['Do you have a reservation?', 'Are you ready to order?', 'Would you like dessert?', 'Do you want tap water?'], answer: 0 },
+    { type: 'match', prompt: 'Tap the matching pairs', pairs: [{ fr: 'La carte', en: 'The menu' }, { fr: 'Une carafe d’eau', en: 'A pitcher of tap water' }, { fr: 'Le serveur', en: 'The waiter' }, { fr: 'Bon appétit', en: 'Enjoy your meal' }] }
+  ],
+  u3_l2: [
+    { type: 'choice', character: 'bea', prompt: 'How do you ask for a glass of red wine?', french: 'Je voudrais un verre de vin rouge.', options: ['I would like a glass of red wine.', 'I would like a bottle of white wine.', 'I prefer sparkling water.', 'No meat, please.'], answer: 0 },
+    { type: 'type', prompt: 'Write this in French', english: 'I am vegetarian.', accepted: ['Je suis végétarien', 'Je suis végétarienne', 'Je suis vegetarien', 'Je suis vegetarienne'], hint: 'Je suis ...' },
+    { type: 'listen', prompt: 'Tap what you hear', french: 'Une carafe d’eau, s’il vous plaît.', tilesAnswer: ['Une', 'carafe', 'd’eau,', 's’il', 'vous', 'plaît.'], extraTiles: ['verre', 'vin', 'merci'] }
+  ],
+  u3_l3: [
+    { type: 'choice', character: 'eddy', prompt: 'Compliment the chef after your meal:', french: 'C’était délicieux, merci beaucoup !', options: ['It was delicious, thank you very much!', 'It is too cold, sorry.', 'Can I pay by card?', 'Where is the exit?'], answer: 0 },
+    { type: 'wordbank', direction: 'en-fr', prompt: 'Translate this sentence', english: 'Can I pay by card?', french: 'Je peux payer par carte ?', frenchAnswer: ['Je', 'peux', 'payer', 'par', 'carte', '?'], bank: ['Je', 'peux', 'payer', 'par', 'carte', '?', 'espèces', 'merci'] }
+  ],
+  u4_l1: [
+    { type: 'choice', character: 'viktor', prompt: 'In a meeting, you didn’t catch a phrase. What do you say?', french: 'Pouvez-vous répéter, s’il vous plaît ?', options: ['Could you repeat, please?', 'Can we start early?', 'I have to leave now.', 'Where is the office?'], answer: 0 },
+    { type: 'match', prompt: 'Tap the matching pairs', pairs: [{ fr: 'La réunion', en: 'The meeting' }, { fr: 'Le bureau', en: 'The office' }, { fr: 'Demain matin', en: 'Tomorrow morning' }, { fr: 'J’ai besoin d’aide', en: 'I need help' }] }
+  ],
+  u4_l2: [
+    { type: 'wordbank', direction: 'fr-en', prompt: 'Translate this sentence', french: 'J’ai une réunion à dix heures.', englishAnswer: ['I', 'have', 'a', 'meeting', 'at', 'ten', 'o’clock'], bank: ['I', 'have', 'a', 'meeting', 'at', 'ten', 'o’clock', 'tomorrow', 'office'] },
+    { type: 'type', prompt: 'Write this in French', english: 'See you tomorrow!', accepted: ['À demain !', 'À demain', 'A demain', 'A demain !'], hint: 'À ...' }
+  ]
+};
+
+const STORIES_DATA = {
+  story_cafe: {
+    title: 'Un café à Montmartre', subtitle: 'Bea orders breakfast at a busy Parisian terrace.',
+    steps: [
+      { type: 'narrator', fr: 'Bea est dans un petit café à Montmartre.', en: 'Bea is in a small café in Montmartre.' },
+      { type: 'dialogue', char: 'eddy', name: 'Serveur', fr: 'Bonjour madame ! Vous désirez ?', en: 'Hello ma’am! What would you like?' },
+      { type: 'dialogue', char: 'bea', name: 'Bea', fr: 'Bonjour ! Je voudrais un café crème et un croissant, s’il vous plaît.', en: 'Hello! I would like a coffee with milk and a croissant, please.' },
+      { type: 'question', prompt: 'What did Bea order?', options: ['A coffee with milk and a croissant', 'A tea and a sandwich', 'Orange juice and toast'], answer: 0 },
+      { type: 'dialogue', char: 'eddy', name: 'Serveur', fr: 'Très bien. Et avec ceci ?', en: 'Very good. Anything else?' },
+      { type: 'dialogue', char: 'bea', name: 'Bea', fr: 'Un verre d’eau, merci beaucoup !', en: 'A glass of water, thank you very much!' },
+      { type: 'question', prompt: 'Did Bea ask for the check yet?', options: ['No, she asked for a glass of water', 'Yes, she is leaving now'], answer: 0 }
+    ]
+  },
+  story_gare: {
+    title: 'À la Gare du Nord', subtitle: 'Viktor catches the morning train to Lille.',
+    steps: [
+      { type: 'narrator', fr: 'Viktor arrive à la Gare du Nord à huit heures.', en: 'Viktor arrives at Gare du Nord at eight o’clock.' },
+      { type: 'dialogue', char: 'viktor', name: 'Viktor', fr: 'Excusez-moi, où est le quai numéro quatre ?', en: 'Excuse me, where is platform number four?' },
+      { type: 'dialogue', char: 'lily', name: 'Agent', fr: 'C’est tout droit, puis à gauche.', en: 'It is straight ahead, then on the left.' },
+      { type: 'question', prompt: 'Which way should Viktor turn?', options: ['Straight ahead, then left', 'Right, then downstairs'], answer: 0 },
+      { type: 'dialogue', char: 'viktor', name: 'Viktor', fr: 'Merci ! Le train part à quelle heure ?', en: 'Thank you! What time does the train leave?' },
+      { type: 'dialogue', char: 'lily', name: 'Agent', fr: 'Il part dans cinq minutes. Dépêchez-vous !', en: 'It leaves in five minutes. Hurry up!' },
+      { type: 'question', prompt: 'Why should Viktor hurry?', options: ['His train leaves in 5 minutes', 'The café is closing'], answer: 0 }
+    ]
+  }
+};
+
+const DEFAULT_STATE = {
+  activeTab: 'learn', xp: 45, streak: 3, gems: 120, hearts: 5, maxHearts: 5,
+  doubleXpLessons: 0, streakFreeze: 1, completedNodes: [], claimedChests: [],
+  mistakes: [], wordsLearned: 12, lessonsCompletedCount: 0, perfectLessonsCount: 0, spokenOrListenedCount: 2,
+  settings: { sfx: true, voice: true },
+  leagueUsers: [
+    { name: 'Claire M.', avatar: '👩‍💻', xp: 145, isUser: false },
+    { name: 'Julien R.', avatar: '🧑‍🎨', xp: 110, isUser: false },
+    { name: 'Sophia K.', avatar: '👩‍🔬', xp: 85, isUser: false },
+    { name: 'You (Learner)', avatar: '🦉', xp: 45, isUser: true },
+    { name: 'Marcus T.', avatar: '👨‍💼', xp: 35, isUser: false },
+    { name: 'Elena V.', avatar: '👩‍🏫', xp: 20, isUser: false },
+    { name: 'David L.', avatar: '🧑‍🍳', xp: 15, isUser: false }
+  ]
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('duo_french_adult_v1');
+    if (raw) { const p = JSON.parse(raw); return { ...DEFAULT_STATE, ...p, settings: { ...DEFAULT_STATE.settings, ...(p.settings || {}) } }; }
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+function saveState() {
+  try {
+    const u = state.leagueUsers.find(x => x.isUser); if (u) u.xp = state.xp;
+    localStorage.setItem('duo_french_adult_v1', JSON.stringify(state));
+  } catch (e) {}
+}
+let state = loadState();
+
+const NAV_ITEMS = [
+  { id: 'learn', label: 'Learn', icon: '🏠' },
+  { id: 'practice', label: 'Practice', icon: '🏋️' },
+  { id: 'leaderboards', label: 'Leaderboards', icon: '🏆' },
+  { id: 'quests', label: 'Quests', icon: '🎯' },
+  { id: 'shop', label: 'Shop', icon: '🛍️' },
+  { id: 'profile', label: 'Profile', icon: '👤' }
+];
+function switchTab(tabId) { playSound('tap'); state.activeTab = tabId; saveState(); renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+function renderNav() {
+  document.getElementById('desktop-nav').innerHTML = NAV_ITEMS.map(item => {
+    const active = state.activeTab === item.id;
+    return `<button onclick="switchTab('${item.id}')" class="flex items-center gap-4 px-3.5 py-3 rounded-xl font-extrabold text-sm uppercase tracking-wider transition-colors border-2 ${active ? 'bg-[#DDF4FF] text-[#1899D6] border-[#84D8FF]' : 'bg-transparent text-[#777777] border-transparent hover:bg-[#F7F7F7]'}"><span class="text-xl leading-none">${item.icon}</span><span class="hidden lg:inline">${item.label}</span></button>`;
+  }).join('');
+  document.getElementById('mobile-nav').innerHTML = NAV_ITEMS.slice(0, 5).map(item => {
+    const active = state.activeTab === item.id;
+    return `<button onclick="switchTab('${item.id}')" class="flex flex-col items-center justify-center p-1.5 rounded-xl ${active ? 'bg-[#DDF4FF] border border-[#84D8FF]' : ''}"><span class="text-xl leading-none">${item.icon}</span></button>`;
+  }).join('');
+}
+
+function renderStatsBars() {
+  document.getElementById('desktop-stats-bar').innerHTML = `
+    <div class="flex items-center gap-1.5 font-extrabold text-sm text-[#3C3C3C] px-2 py-1 rounded-xl"><span class="text-lg">🇫🇷</span></div>
+    <div onclick="openStreakModal()" class="flex items-center gap-1.5 font-extrabold text-sm text-[#FF9600] cursor-pointer hover:bg-[#F7F7F7] px-2 py-1 rounded-xl"><span>🔥</span><span>${state.streak}</span></div>
+    <div onclick="switchTab('shop')" class="flex items-center gap-1.5 font-extrabold text-sm text-[#1CB0F6] cursor-pointer hover:bg-[#F7F7F7] px-2 py-1 rounded-xl"><span>💎</span><span>${state.gems}</span></div>
+    <div onclick="openHeartsModal()" class="flex items-center gap-1.5 font-extrabold text-sm text-[#FF4B4B] cursor-pointer hover:bg-[#F7F7F7] px-2 py-1 rounded-xl"><span>❤️</span><span>${state.hearts}</span></div>
+  `;
+  document.getElementById('mobile-stats-bar').innerHTML = `<span class="text-[#FF9600]">🔥 ${state.streak}</span><span class="text-[#1CB0F6]">💎 ${state.gems}</span><span class="text-[#FF4B4B]">❤️ ${state.hearts}</span>`;
+}
+
+function getQuests() {
+  return [
+    { id: 'q1', title: 'Earn 30 XP', current: Math.min(state.xp, 30), target: 30, reward: '15 💎', icon: '⚡' },
+    { id: 'q2', title: 'Complete 1 lesson', current: Math.min(state.lessonsCompletedCount, 1), target: 1, reward: '20 💎', icon: '🎯' },
+    { id: 'q3', title: 'Practice 5 audio/speaking items', current: Math.min(state.spokenOrListenedCount, 5), target: 5, reward: '25 💎', icon: '🎧' }
+  ];
+}
+
+function renderSidebarCards() {
+  const totalNodes = UNITS.reduce((acc, u) => acc + u.nodes.filter(n => n.type !== 'chest').length, 0);
+  document.getElementById('cefr-progress-bar').style.width = `${Math.max(8, Math.round((state.completedNodes.length / totalNodes) * 100))}%`;
+  document.getElementById('sidebar-words-count').textContent = `${state.wordsLearned} words`;
+  document.getElementById('sidebar-quests-list').innerHTML = getQuests().map(q => `<div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-[#FFF4D6] flex items-center justify-center text-lg shrink-0">${q.icon}</div><div class="flex-1 min-w-0"><div class="flex justify-between text-xs font-extrabold mb-1"><span class="truncate">${q.title}</span><span class="text-[#777777]">${q.current}/${q.target}</span></div><div class="w-full h-2.5 bg-[#E5E5E5] rounded-full overflow-hidden"><div class="h-full bg-[#FFC800] rounded-full" style="width:${Math.round((q.current/q.target)*100)}%"></div></div></div></div>`).join('');
+  const sorted = [...state.leagueUsers].sort((a, b) => b.xp - a.xp);
+  document.getElementById('sidebar-league-summary').textContent = `You're ranked #${sorted.findIndex(u => u.isUser) + 1} this week. Top 3 advance!`;
+  document.getElementById('sidebar-league-mini').innerHTML = sorted.slice(0, 4).map((u, idx) => `<div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl text-sm font-bold ${u.isUser ? 'bg-[#DDF4FF] text-[#1899D6]' : 'text-[#3C3C3C]'}"><div class="flex items-center gap-2"><span class="w-4 text-xs font-black text-[#777777]">${idx + 1}</span><span>${u.avatar}</span><span>${u.name}</span></div><span class="text-xs font-extrabold">${u.xp} XP</span></div>`).join('');
+}
+
+function getActiveNodeId() {
+  for (const unit of UNITS) for (const node of unit.nodes) if (node.type !== 'chest' && !state.completedNodes.includes(node.id)) return node.id;
+  return UNITS[0].nodes[0].id;
+}
+
+function renderLearnView() {
+  const activeNodeId = getActiveNodeId(), offsets = [0, -44, -64, -36, 16, 52, 36];
+  let html = `<div class="flex items-center justify-between mb-5 bg-[#F7F7F7] border-2 border-[#E5E5E5] rounded-2xl px-4 py-3"><div class="flex items-center gap-3"><div class="w-10 h-10 shrink-0">${getOwlSVG('happy', 40)}</div><div><div class="text-xs font-black uppercase tracking-wider text-[#58A700]">French • Adult A1</div><div class="text-sm font-bold text-[#3C3C3C]">Tap any lesson on the path to start learning!</div></div></div>${state.doubleXpLessons > 0 ? `<span class="text-xs font-black bg-[#CE82FF] text-white px-2.5 py-1 rounded-xl shrink-0">⚡ 2x XP (${state.doubleXpLessons})</span>` : ''}</div>`;
+  UNITS.forEach((unit) => {
+    html += `<section class="mb-10"><div class="rounded-2xl p-5 text-white mb-8 flex items-center justify-between gap-4 shadow-sm" style="background-color: ${unit.color}; border-bottom: 4px solid ${unit.darkColor};"><div><div class="text-xs font-black uppercase tracking-widest opacity-90 mb-0.5">Unit ${unit.number}</div><h2 class="text-xl sm:text-2xl font-black leading-tight">${unit.title}</h2><p class="text-sm font-bold opacity-90 mt-0.5">${unit.subtitle}</p></div><button onclick="openGuidebook('${unit.id}')" class="duo-btn shrink-0 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border-2 border-white/40 bg-black/10 hover:bg-black/20 text-white"><span>📘</span><span class="hidden sm:inline">Guidebook</span></button></div><div class="flex flex-col items-center gap-6 py-2">`;
+    unit.nodes.forEach((node, idx) => {
+      const offset = offsets[idx % offsets.length];
+      const isDone = node.type === 'chest' ? state.claimedChests.includes(node.id) : state.completedNodes.includes(node.id);
+      const isActive = node.id === activeNodeId;
+      if (node.type === 'chest') {
+        html += `<div style="transform: translateX(${offset}px)" class="relative flex flex-col items-center"><button onclick="claimChest('${node.id}', ${node.gems})" class="path-node-btn ${isDone ? 'bg-[#E5E5E5] border-b-4 border-[#CCCCCC]' : 'bg-[#FFC800] border-b-[6px] border-[#E5A900]'}"><span class="text-2xl">${isDone ? '📭' : '🎁'}</span></button><span class="text-xs font-extrabold text-[#777777] mt-1.5">${isDone ? 'Claimed' : `+${node.gems} Gems`}</span></div>`;
+      } else {
+        const bg = isDone ? '#FFC800' : (isActive ? unit.color : '#E5E5E5'), border = isDone ? '#E5A900' : (isActive ? unit.darkColor : '#AFAFAF');
+        const clickHandler = node.type === 'story' ? `startStory('${node.storyId}', '${node.id}')` : `startLesson('${node.id}')`;
+        html += `<div style="transform: translateX(${offset}px)" class="relative flex flex-col items-center group">${isActive ? `<div class="animate-bob mb-2 bg-white border-2 border-[#E5E5E5] px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm relative" style="color: ${unit.color};">START<div class="w-2.5 h-2.5 bg-white border-r-2 border-b-2 border-[#E5E5E5] rotate-45 absolute -bottom-1.5 left-1/2 -translate-x-1/2"></div></div>` : ''}<button onclick="${clickHandler}" class="path-node-btn" style="background-color: ${bg}; border-bottom: 6px solid ${border};">${isActive ? `<span class="absolute -inset-2 rounded-full border-4 opacity-40 pointer-events-none" style="border-color: ${unit.color};"></span>` : ''}<span class="text-2xl ${!isDone && !isActive ? 'grayscale opacity-75' : ''}">${isDone ? '⭐' : node.icon}</span></button><span class="text-xs font-extrabold text-[#3C3C3C] mt-1.5 text-center max-w-[140px]">${node.title}</span></div>`;
+      }
+    });
+    html += `</div></section>`;
+  });
+  return html;
+}
+
+function renderPracticeView() {
+  return `
+    <h1 class="text-2xl font-black text-[#3C3C3C] mb-2">Practice Hub</h1><p class="text-sm font-bold text-[#777777] mb-6">Strengthen weak areas, earn hearts, or read interactive stories.</p>
+    <div class="grid gap-4 mb-8">
+      <div class="border-2 border-[#E5E5E5] rounded-2xl p-5 flex items-center justify-between gap-4 bg-white"><div class="flex items-center gap-4"><div class="w-14 h-14 rounded-2xl bg-[#FFDFE0] flex items-center justify-center text-3xl shrink-0">🎯</div><div><h3 class="font-black text-lg text-[#3C3C3C]">Mistakes Review</h3><p class="text-sm font-bold text-[#777777]">${state.mistakes.length > 0 ? `You have ${state.mistakes.length} item(s) to review.` : 'No mistakes queued — try a mixed review!'}</p></div></div><button onclick="startPracticeLesson('mistakes')" class="duo-btn duo-btn-blue px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shrink-0">Practice</button></div>
+      <div class="border-2 border-[#E5E5E5] rounded-2xl p-5 flex items-center justify-between gap-4 bg-white"><div class="flex items-center gap-4"><div class="w-14 h-14 rounded-2xl bg-[#D7FFB8] flex items-center justify-center text-3xl shrink-0">❤️</div><div><h3 class="font-black text-lg text-[#3C3C3C]">Practice to Earn Hearts</h3><p class="text-sm font-bold text-[#777777]">Complete a quick 4-question drill to restore +1 Heart.</p></div></div><button onclick="startPracticeLesson('hearts')" class="duo-btn duo-btn-green px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider shrink-0">+1 Heart</button></div>
+    </div>
+    <h2 class="text-xl font-black text-[#3C3C3C] mb-3">Interactive French Stories</h2>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div class="border-2 border-[#E5E5E5] rounded-2xl p-4 bg-white flex flex-col justify-between"><div><span class="text-3xl mb-2 block">☕</span><h3 class="font-black text-base text-[#3C3C3C]">Un café à Montmartre</h3><p class="text-xs font-bold text-[#777777] mt-1 mb-4">Order at a Parisian terrace with tap-to-translate dialogue.</p></div><button onclick="startStory('story_cafe', 'u1_s1')" class="duo-btn duo-btn-white w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-[#1CB0F6]">Read Story • +25 XP</button></div>
+      <div class="border-2 border-[#E5E5E5] rounded-2xl p-4 bg-white flex flex-col justify-between"><div><span class="text-3xl mb-2 block">🚆</span><h3 class="font-black text-base text-[#3C3C3C]">À la Gare du Nord</h3><p class="text-xs font-bold text-[#777777] mt-1 mb-4">Find your train platform in time with Viktor.</p></div><button onclick="startStory('story_gare', 'u2_s1')" class="duo-btn duo-btn-white w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider text-[#1CB0F6]">Read Story • +25 XP</button></div>
+    </div>
+  `;
+}
+
+function renderLeaderboardsView() {
+  const sorted = [...state.leagueUsers].sort((a, b) => b.xp - a.xp);
+  return `<div class="text-center mb-6"><div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#DDF4FF] text-4xl mb-2">🛡️</div><h1 class="text-2xl font-black text-[#3C3C3C]">Sapphire League</h1><p class="text-sm font-bold text-[#777777]">Top 3 advance to the Ruby League • Complete lessons to climb!</p></div><div class="border-2 border-[#E5E5E5] rounded-2xl overflow-hidden bg-white">${sorted.map((u, i) => `<div class="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F0F0] last:border-b-0 ${u.isUser ? 'bg-[#DDF4FF]/70' : ''}"><div class="flex items-center gap-4"><span class="w-6 text-center font-black ${i < 3 ? 'text-[#58CC02]' : 'text-[#777777]'}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</span><span class="text-2xl">${u.avatar}</span><div><div class="font-extrabold text-sm ${u.isUser ? 'text-[#1899D6]' : 'text-[#3C3C3C]'}">${u.name}</div>${i < 3 ? '<div class="text-[10px] font-black uppercase text-[#58A700]">Promotion Zone</div>' : ''}</div></div><div class="font-black text-sm text-[#3C3C3C]">${u.xp} XP</div></div>`).join('')}</div>`;
+}
+
+function renderQuestsView() {
+  return `<div class="rounded-2xl p-5 bg-[#CE82FF] text-white mb-6 flex items-center justify-between" style="border-bottom: 4px solid #A568CC;"><div><div class="text-xs font-black uppercase tracking-widest opacity-90">Daily Goals</div><h1 class="text-2xl font-black">Today’s Quests</h1><p class="text-sm font-bold opacity-90">Build a daily French habit and earn bonus Gems.</p></div><span class="text-4xl">🎯</span></div><div class="flex flex-col gap-4">${getQuests().map(q => { const done = q.current >= q.target; return `<div class="border-2 border-[#E5E5E5] rounded-2xl p-4 bg-white flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-[#FFF4D6] flex items-center justify-center text-2xl shrink-0">${q.icon}</div><div class="flex-1"><div class="flex justify-between items-center mb-1.5"><h3 class="font-black text-base text-[#3C3C3C]">${q.title}</h3><span class="text-xs font-black px-2.5 py-1 rounded-lg ${done ? 'bg-[#D7FFB8] text-[#58A700]' : 'bg-[#F7F7F7] text-[#777777]'}">${done ? 'COMPLETED' : q.reward}</span></div><div class="w-full h-3.5 bg-[#E5E5E5] rounded-full overflow-hidden"><div class="h-full ${done ? 'bg-[#58CC02]' : 'bg-[#FFC800]'} rounded-full" style="width:${Math.round((q.current/q.target)*100)}%"></div></div><div class="text-xs font-bold text-[#777777] mt-1">${q.current} / ${q.target}</div></div></div>`; }).join('')}</div>`;
+}
+
+function renderShopView() {
+  return `<div class="flex items-center justify-between mb-6"><div><h1 class="text-2xl font-black text-[#3C3C3C]">Shop</h1><p class="text-sm font-bold text-[#777777]">Spend your hard-earned Gems on power-ups.</p></div><div class="bg-[#DDF4FF] border-2 border-[#84D8FF] px-4 py-2 rounded-2xl font-black text-[#1899D6]">💎 ${state.gems}</div></div><div class="flex flex-col gap-4"><div class="border-2 border-[#E5E5E5] rounded-2xl p-5 flex items-center justify-between gap-4"><div class="flex items-center gap-4"><span class="text-4xl">❤️</span><div><h3 class="font-black text-base text-[#3C3C3C]">Refill Hearts</h3><p class="text-sm font-bold text-[#777777]">Restore your hearts to 5/5 right away.</p></div></div><button onclick="buyItem('hearts', 50)" ${state.hearts >= 5 ? 'disabled' : ''} class="duo-btn duo-btn-blue px-4 py-2.5 rounded-xl font-black text-xs uppercase shrink-0 disabled:opacity-40">${state.hearts >= 5 ? 'Full' : '💎 50'}</button></div><div class="border-2 border-[#E5E5E5] rounded-2xl p-5 flex items-center justify-between gap-4"><div class="flex items-center gap-4"><span class="text-4xl">🧊</span><div><h3 class="font-black text-base text-[#3C3C3C]">Streak Freeze (${state.streakFreeze}/2)</h3><p class="text-sm font-bold text-[#777777]">Protect your streak if you miss a day.</p></div></div><button onclick="buyItem('freeze', 60)" ${state.streakFreeze >= 2 ? 'disabled' : ''} class="duo-btn duo-btn-blue px-4 py-2.5 rounded-xl font-black text-xs uppercase shrink-0 disabled:opacity-40">${state.streakFreeze >= 2 ? 'Maxed' : '💎 60'}</button></div><div class="border-2 border-[#E5E5E5] rounded-2xl p-5 flex items-center justify-between gap-4"><div class="flex items-center gap-4"><span class="text-4xl">⚡</span><div><h3 class="font-black text-base text-[#3C3C3C]">Double XP Boost</h3><p class="text-sm font-bold text-[#777777]">Earn 2x XP on your next 2 lessons.</p></div></div><button onclick="buyItem('xp', 40)" class="duo-btn duo-btn-blue px-4 py-2.5 rounded-xl font-black text-xs uppercase shrink-0">💎 40</button></div></div>`;
+}
+
+function renderProfileView() {
+  return `<div class="border-2 border-[#E5E5E5] rounded-3xl p-6 mb-6 flex items-center justify-between gap-4 bg-[#F7F7F7]"><div class="flex items-center gap-4"><div class="w-20 h-20 rounded-full bg-[#D7FFB8] border-4 border-[#58CC02] flex items-center justify-center shrink-0">${getOwlSVG('happy', 64)}</div><div><h1 class="text-2xl font-black text-[#3C3C3C]">Adult Learner</h1><p class="text-sm font-bold text-[#777777]">Learning French 🇫🇷 • CEFR A1 Track</p></div></div><button onclick="resetProgressConfirm()" class="duo-btn duo-btn-white px-3.5 py-2 rounded-xl text-xs font-extrabold text-[#777777]">Reset</button></div><h2 class="text-xl font-black text-[#3C3C3C] mb-3">Statistics</h2><div class="grid grid-cols-2 gap-4 mb-6"><div class="border-2 border-[#E5E5E5] rounded-2xl p-4 flex items-center gap-3"><span class="text-3xl">🔥</span><div><div class="font-black text-xl">${state.streak}</div><div class="text-xs font-bold text-[#777777]">Day Streak</div></div></div><div class="border-2 border-[#E5E5E5] rounded-2xl p-4 flex items-center gap-3"><span class="text-3xl">⚡</span><div><div class="font-black text-xl">${state.xp}</div><div class="text-xs font-bold text-[#777777]">Total XP</div></div></div><div class="border-2 border-[#E5E5E5] rounded-2xl p-4 flex items-center gap-3"><span class="text-3xl">📚</span><div><div class="font-black text-xl">${state.wordsLearned}</div><div class="text-xs font-bold text-[#777777]">Words Learned</div></div></div><div class="border-2 border-[#E5E5E5] rounded-2xl p-4 flex items-center gap-3"><span class="text-3xl">✅</span><div><div class="font-black text-xl">${state.lessonsCompletedCount}</div><div class="text-xs font-bold text-[#777777]">Lessons Completed</div></div></div></div>`;
+}
+
+function renderMainContent() {
+  const el = document.getElementById('main-content');
+  if (state.activeTab === 'learn') el.innerHTML = renderLearnView();
+  else if (state.activeTab === 'practice') el.innerHTML = renderPracticeView();
+  else if (state.activeTab === 'leaderboards') el.innerHTML = renderLeaderboardsView();
+  else if (state.activeTab === 'quests') el.innerHTML = renderQuestsView();
+  else if (state.activeTab === 'shop') el.innerHTML = renderShopView();
+  else if (state.activeTab === 'profile') el.innerHTML = renderProfileView();
+}
+
+function renderAll() {
+  document.getElementById('sidebar-owl-logo').innerHTML = getOwlSVG('happy', 36);
+  renderNav(); renderStatsBars(); renderSidebarCards(); renderMainContent();
+  document.getElementById('sfx-status').textContent = state.settings.sfx ? 'ON' : 'OFF';
+  document.getElementById('sfx-status').className = state.settings.sfx ? 'text-xs px-2 py-0.5 rounded-full bg-[#D7FFB8] text-[#58A700]' : 'text-xs px-2 py-0.5 rounded-full bg-[#E5E5E5] text-[#777777]';
+  document.getElementById('voice-status').textContent = state.settings.voice ? 'ON' : 'OFF';
+  document.getElementById('voice-status').className = state.settings.voice ? 'text-xs px-2 py-0.5 rounded-full bg-[#D7FFB8] text-[#58A700]' : 'text-xs px-2 py-0.5 rounded-full bg-[#E5E5E5] text-[#777777]';
+}
+
+function showToast(msg) { const c = document.getElementById('toast-container'), t = document.createElement('div'); t.className = 'bg-[#3C3C3C] text-white font-extrabold text-sm px-5 py-3 rounded-2xl shadow-lg animate-pop'; t.textContent = msg; c.appendChild(t); setTimeout(() => t.remove(), 2600); }
+function claimChest(chestId, gems) { if (state.claimedChests.includes(chestId)) { showToast('You already claimed this chest!'); return; } playSound('complete'); state.claimedChests.push(chestId); state.gems += gems; saveState(); renderAll(); showToast(`🎁 Opened chest! +${gems} Gems`); }
+function buyItem(item, cost) { if (state.gems < cost) { showToast('Not enough Gems!'); return; } playSound('correct'); state.gems -= cost; if (item === 'hearts') state.hearts = state.maxHearts; if (item === 'freeze') state.streakFreeze += 1; if (item === 'xp') state.doubleXpLessons += 2; saveState(); renderAll(); showToast('Purchase successful!'); }
+function toggleSoundEffects() { state.settings.sfx = !state.settings.sfx; saveState(); renderAll(); }
+function toggleSpeechVoice() { state.settings.voice = !state.settings.voice; saveState(); renderAll(); }
+function openModal(html) { document.getElementById('modal-content').innerHTML = html; const b = document.getElementById('modal-backdrop'); b.classList.remove('hidden'); b.classList.add('flex'); }
+function closeModal() { const b = document.getElementById('modal-backdrop'); b.classList.add('hidden'); b.classList.remove('flex'); }
+
+function openGuidebook(unitId) {
+  playSound('tap'); const unit = UNITS.find(u => u.id === unitId); if (!unit) return;
+  openModal(`<div class="flex items-center justify-between mb-4"><div><div class="text-xs font-black uppercase tracking-wider" style="color:${unit.color}">Unit ${unit.number} Guidebook</div><h2 class="text-2xl font-black text-[#3C3C3C]">${unit.title}</h2></div><button onclick="closeModal()" class="text-[#AFAFAF] hover:text-[#777777] text-xl font-black">✕</button></div><div class="flex flex-col gap-3 mb-5">${unit.guidebook.tips.map(t => `<div class="bg-[#F7F7F7] border-2 border-[#E5E5E5] rounded-2xl p-4"><h3 class="font-black text-sm text-[#3C3C3C] mb-1">💡 ${t.title}</h3><p class="text-sm font-semibold text-[#555555] leading-relaxed">${t.body}</p></div>`).join('')}</div><h3 class="font-black text-base text-[#3C3C3C] mb-2">Key Phrases (Tap to Listen)</h3><div class="flex flex-col gap-2 mb-5">${unit.guidebook.phrases.map(p => `<button onclick="speakFrench('${p.fr.replace(/'/g, "\\'")}')" class="text-left border-2 border-[#E5E5E5] hover:bg-[#DDF4FF] rounded-xl p-3 flex items-center justify-between gap-3"><div><div class="font-extrabold text-sm text-[#1899D6]">${p.fr}</div><div class="text-xs font-bold text-[#777777]">${p.en}</div></div><span class="text-lg">🔊</span></button>`).join('')}</div><button onclick="closeModal()" class="duo-btn duo-btn-green w-full py-3 rounded-2xl font-black uppercase text-sm">Got it</button>`);
+}
+function openStreakModal() { openModal(`<div class="text-center"><div class="text-5xl mb-2">🔥</div><h2 class="text-2xl font-black text-[#FF9600]">${state.streak} Day Streak!</h2><p class="text-sm font-bold text-[#777777] mt-1 mb-5">Practice every day so your streak stays lit. You have ${state.streakFreeze} Streak Freeze(s) equipped.</p><div class="grid grid-cols-7 gap-2 mb-6">${['M','T','W','T','F','S','S'].map((d, i) => `<div class="flex flex-col items-center gap-1"><span class="text-xs font-extrabold text-[#777777]">${d}</span><div class="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm ${i < 3 ? 'bg-[#FF9600] text-white' : 'bg-[#F0F0F0] text-[#AFAFAF]'}">${i < 3 ? '✓' : ''}</div></div>`).join('')}</div><button onclick="closeModal()" class="duo-btn duo-btn-green w-full py-3 rounded-2xl font-black uppercase text-sm">Keep Going</button></div>`); }
+function openHeartsModal() { openModal(`<div class="text-center"><div class="text-5xl mb-2">❤️</div><h2 class="text-2xl font-black text-[#3C3C3C]">You have ${state.hearts} / ${state.maxHearts} Hearts</h2><p class="text-sm font-bold text-[#777777] mt-1 mb-5">Hearts keep you focused during lessons. You can always practice to earn more!</p><div class="flex flex-col gap-3"><button onclick="closeModal(); startPracticeLesson('hearts')" class="duo-btn duo-btn-green w-full py-3 rounded-2xl font-black uppercase text-sm">Practice to Earn +1 Heart</button><button onclick="buyItem('hearts', 50); closeModal();" ${state.hearts >= 5 || state.gems < 50 ? 'disabled' : ''} class="duo-btn duo-btn-blue w-full py-3 rounded-2xl font-black uppercase text-sm disabled:opacity-40">Refill Hearts (💎 50)</button><button onclick="closeModal()" class="duo-btn duo-btn-white w-full py-2.5 rounded-2xl font-black uppercase text-xs text-[#777777]">Close</button></div></div>`); }
+function resetProgressConfirm() { openModal(`<div class="text-center"><div class="mx-auto w-20 mb-2">${getOwlSVG('sad', 80)}</div><h2 class="text-xl font-black text-[#3C3C3C]">Reset all progress?</h2><p class="text-sm font-bold text-[#777777] mt-1 mb-5">This will clear your XP, completed lessons, and gems.</p><div class="flex gap-3"><button onclick="closeModal()" class="duo-btn duo-btn-white flex-1 py-3 rounded-2xl font-black uppercase text-xs">Cancel</button><button onclick="state = JSON.parse(JSON.stringify(DEFAULT_STATE)); saveState(); closeModal(); renderAll(); showToast('Progress reset');" class="duo-btn duo-btn-red flex-1 py-3 rounded-2xl font-black uppercase text-xs">Reset</button></div></div>`); }
+
+let lessonSession = null;
+function startLesson(lessonId) {
+  if (state.hearts <= 0) { openHeartsModal(); return; }
+  const questions = LESSONS_DATA[lessonId]; if (!questions || !questions.length) { showToast('Lesson coming soon!'); return; }
+  playSound('tap');
+  lessonSession = { mode: 'lesson', lessonId, queue: questions.map((q, i) => ({ ...q, _qid: i })), totalInitial: questions.length, completedCount: 0, correctFirstTry: 0, mistakeIds: new Set(), checked: false, isCorrect: false, selectedChoice: null, wordBankSelected: [], matchState: null, typedValue: '', speechDone: false };
+  document.getElementById('lesson-overlay').classList.remove('hidden'); document.getElementById('lesson-overlay').classList.add('flex'); renderLessonQuestion();
+}
+function startPracticeLesson(mode) {
+  const pool = (mode === 'mistakes' && state.mistakes.length > 0) ? state.mistakes.slice(0, 5).map(m => m.question) : [LESSONS_DATA.u1_l1[0], LESSONS_DATA.u1_l2[1], LESSONS_DATA.u2_l1[0], LESSONS_DATA.u3_l1[2]];
+  playSound('tap');
+  lessonSession = { mode, lessonId: 'practice_' + mode, queue: pool.map((q, i) => ({ ...q, _qid: i })), totalInitial: pool.length, completedCount: 0, correctFirstTry: 0, mistakeIds: new Set(), checked: false, isCorrect: false, selectedChoice: null, wordBankSelected: [], matchState: null, typedValue: '', speechDone: false };
+  document.getElementById('lesson-overlay').classList.remove('hidden'); document.getElementById('lesson-overlay').classList.add('flex'); renderLessonQuestion();
+}
+function confirmExitLesson() { openModal(`<div class="text-center"><div class="mx-auto w-20 mb-2">${getOwlSVG('sad', 80)}</div><h2 class="text-xl font-black text-[#3C3C3C]">Wait, don’t go!</h2><p class="text-sm font-bold text-[#777777] mt-1 mb-5">You’ll lose your progress in this lesson if you quit now.</p><div class="flex flex-col gap-2.5"><button onclick="closeModal()" class="duo-btn duo-btn-blue w-full py-3 rounded-2xl font-black uppercase text-sm">Keep Learning</button><button onclick="closeModal(); closeLessonOverlay();" class="w-full py-2.5 font-black uppercase text-xs text-[#FF4B4B] hover:underline">End Session</button></div></div>`); }
+function closeLessonOverlay() { document.getElementById('lesson-overlay').classList.add('hidden'); document.getElementById('lesson-overlay').classList.remove('flex'); lessonSession = null; }
+
+function renderLessonQuestion() {
+  const s = lessonSession; if (!s) return;
+  if (s.queue.length === 0) { renderLessonComplete(); return; }
+  const q = s.queue[0];
+  document.getElementById('lesson-progress-bar').style.width = `${Math.min(100, Math.round((s.completedCount / s.totalInitial) * 100))}%`;
+  document.getElementById('lesson-hearts-count').textContent = s.mode === 'hearts' ? '∞' : state.hearts;
+  const stage = document.getElementById('lesson-stage');
+
+  if (q.type === 'choice') {
+    stage.innerHTML = `<div class="text-xs font-black uppercase tracking-wider text-[#CE82FF] mb-1">Choose the right meaning</div><h2 class="text-2xl font-black text-[#3C3C3C] mb-5">${q.prompt}</h2><div class="flex items-center gap-4 mb-6"><div class="shrink-0">${getCharacterSVG(q.character || 'bea', 76)}</div><div class="border-2 border-[#E5E5E5] rounded-2xl px-4 py-3 flex items-center gap-3 bg-white shadow-sm"><button onclick="speakFrench('${q.french.replace(/'/g, "\\'")}')" class="duo-btn duo-btn-blue w-10 h-10 rounded-xl flex items-center justify-center shrink-0">🔊</button><span class="font-extrabold text-lg text-[#3C3C3C]">${q.french}</span></div></div><div class="grid gap-3">${q.options.map((opt, idx) => { let cls = 'duo-card-choice'; if (s.checked) { if (idx === q.answer) cls += ' correct'; else if (idx === s.selectedChoice) cls += ' wrong'; } else if (s.selectedChoice === idx) cls += ' selected'; return `<button ${s.checked ? 'disabled' : ''} onclick="selectChoice(${idx})" class="${cls} p-4 text-left flex items-center gap-3"><span class="w-7 h-7 rounded-lg border-2 border-[#E5E5E5] flex items-center justify-center text-xs font-black text-[#777777] shrink-0">${idx + 1}</span><span class="font-bold text-base">${opt}</span></button>`; }).join('')}</div>`;
+    setTimeout(() => speakFrench(q.french), 150);
+  } else if (q.type === 'wordbank' || q.type === 'listen') {
+    const isListen = q.type === 'listen', promptPhrase = q.direction === 'en-fr' ? q.english : q.french;
+    const bank = q.type === 'listen' ? (q._shuffledBank || (q._shuffledBank = [...q.tilesAnswer, ...(q.extraTiles || [])].sort(() => Math.random() - 0.5))) : (q._shuffledBank || (q._shuffledBank = [...q.bank].sort(() => Math.random() - 0.5)));
+    stage.innerHTML = `<div class="text-xs font-black uppercase tracking-wider text-[#1CB0F6] mb-1">${isListen ? 'Listening' : 'Translate this sentence'}</div><h2 class="text-2xl font-black text-[#3C3C3C] mb-5">${q.prompt}</h2>${isListen ? `<div class="flex items-center justify-center gap-4 mb-6"><button onclick="speakFrench('${q.french.replace(/'/g, "\\'")}', false)" class="duo-btn duo-btn-blue w-24 h-24 rounded-3xl flex items-center justify-center text-4xl">🔊</button><button onclick="speakFrench('${q.french.replace(/'/g, "\\'")}', true)" class="duo-btn duo-btn-white w-14 h-14 rounded-2xl flex items-center justify-center text-2xl">🐢</button></div>` : `<div class="flex items-center gap-4 mb-6"><div class="shrink-0">${getOwlSVG('happy', 68)}</div><div class="border-2 border-[#E5E5E5] rounded-2xl px-4 py-3 flex items-center gap-3 bg-white">${q.direction !== 'en-fr' ? `<button onclick="speakFrench('${q.french.replace(/'/g, "\\'")}')" class="duo-btn duo-btn-blue w-10 h-10 rounded-xl flex items-center justify-center shrink-0">🔊</button>` : ''}<span class="font-extrabold text-lg text-[#3C3C3C]">${promptPhrase}</span></div></div>`}<div class="min-h-[68px] border-t-2 border-b-2 border-[#E5E5E5] py-3 mb-6 flex flex-wrap gap-2 items-center">${s.wordBankSelected.length === 0 ? '<span class="text-sm font-bold text-[#AFAFAF]">Tap words below to build your answer...</span>' : ''}${s.wordBankSelected.map((item, pos) => `<button ${s.checked ? 'disabled' : ''} onclick="removeWordTile(${pos})" class="word-tile">${item.word}</button>`).join('')}</div><div class="flex flex-wrap gap-2.5 justify-center">${bank.map((word, idx) => { const isUsed = s.wordBankSelected.some(x => x.idx === idx); return `<button ${s.checked || isUsed ? 'disabled' : ''} onclick="addWordTile(${idx}, '${word.replace(/'/g, "\\'")}')" class="word-tile ${isUsed ? 'used' : ''}">${word}</button>`; }).join('')}</div>`;
+    if (isListen || q.direction !== 'en-fr') setTimeout(() => speakFrench(q.french), 150);
+  } else if (q.type === 'type') {
+    const accents = ['é', 'è', 'ê', 'à', 'ç', 'ù', 'î', 'ô', '’'];
+    stage.innerHTML = `<div class="text-xs font-black uppercase tracking-wider text-[#58A700] mb-1">Write in French</div><h2 class="text-2xl font-black text-[#3C3C3C] mb-5">${q.prompt}</h2><div class="flex items-center gap-4 mb-5"><div class="shrink-0">${getCharacterSVG('bea', 64)}</div><div class="border-2 border-[#E5E5E5] rounded-2xl px-4 py-3 font-extrabold text-lg text-[#3C3C3C]">${q.english}</div></div><textarea id="french-type-input" ${s.checked ? 'disabled' : ''} rows="3" placeholder="Type in French..." oninput="lessonSession.typedValue = this.value; updateLessonFooter();" class="w-full border-2 border-[#E5E5E5] focus:border-[#1CB0F6] rounded-2xl p-4 text-lg font-bold bg-[#F7F7F7] outline-none resize-none">${s.typedValue}</textarea><div class="flex flex-wrap gap-1.5 mt-3">${accents.map(ch => `<button type="button" ${s.checked ? 'disabled' : ''} onclick="insertAccent('${ch}')" class="duo-btn duo-btn-white px-3 py-1.5 rounded-xl font-extrabold text-base">${ch}</button>`).join('')}</div>`;
+    setTimeout(() => { const inp = document.getElementById('french-type-input'); if (inp && !s.checked) inp.focus(); }, 50);
+  } else if (q.type === 'match') {
+    if (!s.matchState) s.matchState = { left: [...q.pairs].map((p, i) => ({ text: p.fr, id: i })).sort(() => Math.random() - 0.5), right: [...q.pairs].map((p, i) => ({ text: p.en, id: i })).sort(() => Math.random() - 0.5), selectedLeft: null, selectedRight: null, matchedIds: [], errorPair: null };
+    const ms = s.matchState;
+    stage.innerHTML = `<div class="text-xs font-black uppercase tracking-wider text-[#FF9600] mb-1">Vocabulary Match</div><h2 class="text-2xl font-black text-[#3C3C3C] mb-6">${q.prompt}</h2><div class="grid grid-cols-2 gap-4"><div class="flex flex-col gap-3">${ms.left.map(item => `<button ${ms.matchedIds.includes(item.id) ? 'disabled' : ''} onclick="selectMatch('left', ${item.id}, '${item.text.replace(/'/g, "\\'")}')" class="duo-card-choice p-4 font-extrabold text-base text-center ${ms.matchedIds.includes(item.id) ? 'opacity-30 bg-[#D7FFB8] border-[#58A700]' : ''} ${ms.selectedLeft === item.id ? 'selected' : ''} ${ms.errorPair && ms.errorPair.left === item.id ? 'wrong animate-shake' : ''}">${item.text}</button>`).join('')}</div><div class="flex flex-col gap-3">${ms.right.map(item => `<button ${ms.matchedIds.includes(item.id) ? 'disabled' : ''} onclick="selectMatch('right', ${item.id})" class="duo-card-choice p-4 font-extrabold text-base text-center ${ms.matchedIds.includes(item.id) ? 'opacity-30 bg-[#D7FFB8] border-[#58A700]' : ''} ${ms.selectedRight === item.id ? 'selected' : ''} ${ms.errorPair && ms.errorPair.right === item.id ? 'wrong animate-shake' : ''}">${item.text}</button>`).join('')}</div></div>`;
+  } else if (q.type === 'speak') {
+    stage.innerHTML = `<div class="text-xs font-black uppercase tracking-wider text-[#1CB0F6] mb-1">Speaking Exercise</div><h2 class="text-2xl font-black text-[#3C3C3C] mb-5">${q.prompt}</h2><div class="flex items-center gap-4 mb-6"><div class="shrink-0">${getOwlSVG('happy', 68)}</div><div class="border-2 border-[#E5E5E5] rounded-2xl px-4 py-3 flex items-center gap-3 bg-white"><button onclick="speakFrench('${q.french.replace(/'/g, "\\'")}')" class="duo-btn duo-btn-blue w-10 h-10 rounded-xl flex items-center justify-center shrink-0">🔊</button><div><div class="font-extrabold text-lg text-[#3C3C3C]">${q.french}</div><div class="text-xs font-bold text-[#777777]">${q.english}</div></div></div></div><div class="flex flex-col items-center gap-3 py-4"><button id="mic-speak-btn" ${s.checked ? 'disabled' : ''} onclick="triggerSpeechCheck()" class="duo-btn duo-btn-white w-full max-w-sm py-5 rounded-2xl font-black text-base text-[#1CB0F6] flex items-center justify-center gap-3"><span class="text-2xl">🎙️</span><span>Tap to Speak</span></button><p id="speech-transcript" class="text-sm font-bold text-[#777777] min-h-[20px]"></p></div>`;
+    setTimeout(() => speakFrench(q.french), 150);
+  }
+  updateLessonFooter();
+}
+
+function selectChoice(idx) { playSound('tap'); lessonSession.selectedChoice = idx; renderLessonQuestion(); }
+function addWordTile(idx, word) { playSound('tap'); lessonSession.wordBankSelected.push({ idx, word }); if (lessonSession.queue[0].direction === 'en-fr' || lessonSession.queue[0].type === 'listen') speakFrench(word); renderLessonQuestion(); }
+function removeWordTile(pos) { playSound('tap'); lessonSession.wordBankSelected.splice(pos, 1); renderLessonQuestion(); }
+function insertAccent(ch) { const inp = document.getElementById('french-type-input'); if (!inp) return; const start = inp.selectionStart, end = inp.selectionEnd; inp.value = inp.value.slice(0, start) + ch + inp.value.slice(end); inp.selectionStart = inp.selectionEnd = start + 1; lessonSession.typedValue = inp.value; inp.focus(); updateLessonFooter(); }
+function selectMatch(side, id, frText) {
+  const ms = lessonSession.matchState; playSound('tap'); if (side === 'left' && frText) speakFrench(frText);
+  if (side === 'left') ms.selectedLeft = id; else ms.selectedRight = id;
+  if (ms.selectedLeft !== null && ms.selectedRight !== null) {
+    if (ms.selectedLeft === ms.selectedRight) { playSound('correct'); ms.matchedIds.push(ms.selectedLeft); ms.selectedLeft = null; ms.selectedRight = null; if (ms.matchedIds.length === lessonSession.queue[0].pairs.length) { lessonSession.checked = true; lessonSession.isCorrect = true; } renderLessonQuestion(); }
+    else { playSound('wrong'); ms.errorPair = { left: ms.selectedLeft, right: ms.selectedRight }; ms.selectedLeft = null; ms.selectedRight = null; renderLessonQuestion(); setTimeout(() => { if (lessonSession && lessonSession.matchState) { lessonSession.matchState.errorPair = null; renderLessonQuestion(); } }, 450); }
+  } else renderLessonQuestion();
+}
+function triggerSpeechCheck() {
+  const btn = document.getElementById('mic-speak-btn'), transEl = document.getElementById('speech-transcript'), SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRec) { try { const rec = new SpeechRec(); rec.lang = 'fr-FR'; rec.interimResults = false; btn.innerHTML = '<span class="text-2xl animate-pulse">🔴</span><span>Listening...</span>'; rec.onresult = (e) => { transEl.textContent = `Heard: "${e.results[0][0].transcript}"`; lessonSession.speechDone = true; checkAnswer(); }; rec.onerror = () => { transEl.textContent = 'Microphone unavailable — marked as practiced!'; lessonSession.speechDone = true; checkAnswer(); }; rec.start(); return; } catch (e) {} }
+  transEl.textContent = 'Pronunciation practiced!'; lessonSession.speechDone = true; checkAnswer();
+}
+function canCheckCurrent() {
+  const s = lessonSession, q = s.queue[0];
+  if (q.type === 'choice') return s.selectedChoice !== null;
+  if (q.type === 'wordbank' || q.type === 'listen') return s.wordBankSelected.length > 0;
+  if (q.type === 'type') return s.typedValue.trim().length > 0;
+  if (q.type === 'speak') return s.speechDone;
+  if (q.type === 'match') return s.matchState && s.matchState.matchedIds.length === q.pairs.length;
+  return false;
+}
+function normalizeStr(str) { return str.toLowerCase().replace(/[’']/g, "'").replace(/[.,!?]/g, '').replace(/\s+/g, ' ').trim(); }
+function checkAnswer() {
+  const s = lessonSession, q = s.queue[0]; let correct = false, correctSolutionText = '', accentTip = '';
+  if (q.type === 'choice') { correct = s.selectedChoice === q.answer; correctSolutionText = q.options[q.answer]; }
+  else if (q.type === 'wordbank') { const t = q.direction === 'en-fr' ? q.frenchAnswer : q.englishAnswer; correct = normalizeStr(s.wordBankSelected.map(x => x.word).join(' ')) === normalizeStr(t.join(' ')); correctSolutionText = t.join(' '); }
+  else if (q.type === 'listen') { correct = normalizeStr(s.wordBankSelected.map(x => x.word).join(' ')) === normalizeStr(q.tilesAnswer.join(' ')); correctSolutionText = q.french; state.spokenOrListenedCount += 1; }
+  else if (q.type === 'type') { const u = normalizeStr(s.typedValue); correct = q.accepted.some(a => normalizeStr(a) === u); if (!correct) { const strip = x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); if (q.accepted.some(a => strip(normalizeStr(a)) === strip(u))) { correct = true; accentTip = `Pay attention to the accents: ${q.accepted[0]}`; } } correctSolutionText = q.accepted[0]; }
+  else if (q.type === 'speak') { correct = true; state.spokenOrListenedCount += 1; }
+  else if (q.type === 'match') { correct = true; }
+  s.checked = true; s.isCorrect = correct; s._correctSolutionText = correctSolutionText; s._accentTip = accentTip;
+  if (correct) { playSound('correct'); if (!s.mistakeIds.has(q._qid)) s.correctFirstTry += 1; }
+  else { playSound('wrong'); s.mistakeIds.add(q._qid); if (s.mode !== 'hearts') state.hearts = Math.max(0, state.hearts - 1); if (!state.mistakes.some(m => m.question.prompt === q.prompt && m.question.french === q.french)) state.mistakes.push({ lessonId: s.lessonId, question: q }); saveState(); }
+  renderLessonQuestion();
+  if (!correct && state.hearts <= 0 && s.mode !== 'hearts') openModal(`<div class="text-center"><div class="mx-auto w-20 mb-2">${getOwlSVG('sad', 80)}</div><h2 class="text-2xl font-black text-[#FF4B4B]">Out of Hearts!</h2><p class="text-sm font-bold text-[#777777] mt-1 mb-5">Practice to earn a heart or refill with Gems to continue.</p><div class="flex flex-col gap-2.5"><button onclick="closeModal(); closeLessonOverlay(); startPracticeLesson('hearts');" class="duo-btn duo-btn-green w-full py-3 rounded-2xl font-black uppercase text-sm">Practice for +1 Heart</button><button onclick="buyItem('hearts', 50); closeModal(); renderLessonQuestion();" ${state.gems < 50 ? 'disabled' : ''} class="duo-btn duo-btn-blue w-full py-3 rounded-2xl font-black uppercase text-sm disabled:opacity-40">Refill (💎 50)</button><button onclick="closeModal(); closeLessonOverlay();" class="w-full py-2 font-black uppercase text-xs text-[#777777]">Quit Lesson</button></div></div>`);
+}
+function skipQuestion() { const s = lessonSession, q = s.queue.shift(); s.queue.push(q); s.checked = false; s.selectedChoice = null; s.wordBankSelected = []; s.matchState = null; s.typedValue = ''; s.speechDone = false; renderLessonQuestion(); }
+function nextQuestion() { const s = lessonSession, q = s.queue.shift(); if (s.isCorrect) s.completedCount += 1; else s.queue.push(q); s.checked = false; s.isCorrect = false; s.selectedChoice = null; s.wordBankSelected = []; s.matchState = null; s.typedValue = ''; s.speechDone = false; renderLessonQuestion(); }
+
+function updateLessonFooter() {
+  const s = lessonSession, footer = document.getElementById('lesson-footer'), inner = document.getElementById('lesson-footer-inner'), q = s.queue[0];
+  if (!s.checked) {
+    footer.className = 'border-t-2 border-[#E5E5E5] bg-white transition-colors duration-200';
+    inner.innerHTML = `<button onclick="skipQuestion()" class="duo-btn duo-btn-white px-7 py-3 rounded-2xl font-black uppercase tracking-wider text-sm text-[#777777] w-full sm:w-auto">${q.type === 'speak' || q.type === 'listen' ? "Can't now" : 'Skip'}</button><button onclick="checkAnswer()" ${canCheckCurrent() ? '' : 'disabled'} class="duo-btn duo-btn-green px-10 py-3 rounded-2xl font-black uppercase tracking-wider text-sm w-full sm:w-auto">Check</button>`;
+  } else if (s.isCorrect) {
+    footer.className = 'border-t-2 border-[#B8F28B] bg-[#D7FFB8] transition-colors duration-200';
+    const praise = ['Nicely done!', 'Très bien !', 'Excellent!', 'You got this!'][s.completedCount % 4];
+    inner.innerHTML = `<div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl text-[#58A700] font-black shrink-0">✓</div><div><div class="font-black text-xl text-[#58A700]">${praise}</div>${s._accentTip ? `<div class="text-sm font-bold text-[#58A700]">${s._accentTip}</div>` : (q.note ? `<div class="text-xs font-bold text-[#58A700]/90">${q.note}</div>` : '')}</div></div><button onclick="nextQuestion()" class="duo-btn duo-btn-green px-10 py-3 rounded-2xl font-black uppercase tracking-wider text-sm w-full sm:w-auto">Continue</button>`;
+  } else {
+    footer.className = 'border-t-2 border-[#FFB8B8] bg-[#FFDFE0] transition-colors duration-200';
+    inner.innerHTML = `<div class="flex items-center gap-3"><div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl text-[#EA2B2B] font-black shrink-0">✕</div><div><div class="font-black text-lg text-[#EA2B2B]">Correct solution:</div><div class="font-extrabold text-sm text-[#EA2B2B]">${s._correctSolutionText}</div>${q.note ? `<div class="text-xs font-bold text-[#EA2B2B]/85 mt-0.5">${q.note}</div>` : ''}</div></div><button onclick="nextQuestion()" class="duo-btn duo-btn-red px-10 py-3 rounded-2xl font-black uppercase tracking-wider text-sm w-full sm:w-auto">Got it</button>`;
+  }
+}
+
+function renderLessonComplete() {
+  const s = lessonSession; playSound('complete');
+  try { if (typeof confetti === 'function') confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } }); } catch (e) {}
+  let earnedXp = s.mode === 'hearts' ? 10 : 15;
+  if (state.doubleXpLessons > 0) { earnedXp *= 2; state.doubleXpLessons -= 1; }
+  const accuracy = Math.round((s.correctFirstTry / s.totalInitial) * 100);
+  state.xp += earnedXp; state.gems += 10; state.lessonsCompletedCount += 1; state.wordsLearned += 4;
+  if (s.mode === 'lesson' && !state.completedNodes.includes(s.lessonId)) state.completedNodes.push(s.lessonId);
+  if (s.mode === 'hearts') state.hearts = Math.min(state.maxHearts, state.hearts + 1);
+  saveState();
+  document.getElementById('lesson-progress-bar').style.width = '100%';
+  document.getElementById('lesson-footer').className = 'border-t-2 border-[#E5E5E5] bg-white';
+  document.getElementById('lesson-stage').innerHTML = `<div class="text-center animate-pop py-4"><div class="mx-auto w-32 mb-3">${getOwlSVG('cheering', 128)}</div><h1 class="text-3xl font-black text-[#FFC800] mb-1">Lesson Complete!</h1><p class="text-base font-bold text-[#777777] mb-6">${s.mode === 'hearts' ? 'You earned +1 Heart!' : 'C’est magnifique ! Keep your momentum going.'}</p><div class="grid grid-cols-3 gap-3 max-w-md mx-auto"><div class="border-2 border-[#FFC800] rounded-2xl p-3 bg-[#FFFBEB]"><div class="text-xs font-black uppercase text-[#E5A900] mb-1">Total XP</div><div class="text-2xl font-black text-[#3C3C3C]">⚡ +${earnedXp}</div></div><div class="border-2 border-[#58CC02] rounded-2xl p-3 bg-[#F3FFE8]"><div class="text-xs font-black uppercase text-[#58A700] mb-1">Accuracy</div><div class="text-2xl font-black text-[#3C3C3C]">🎯 ${accuracy}%</div></div><div class="border-2 border-[#1CB0F6] rounded-2xl p-3 bg-[#EBF9FF]"><div class="text-xs font-black uppercase text-[#1899D6] mb-1">Gems</div><div class="text-2xl font-black text-[#3C3C3C]">💎 +10</div></div></div></div>`;
+  document.getElementById('lesson-footer-inner').innerHTML = `<div></div><button onclick="closeLessonOverlay(); renderAll();" class="duo-btn duo-btn-green px-10 py-3.5 rounded-2xl font-black uppercase tracking-wider text-sm w-full sm:w-auto">Continue</button>`;
+}
+
+let storySession = null;
+function startStory(storyId, nodeId) { const story = STORIES_DATA[storyId]; if (!story) return; playSound('tap'); storySession = { story, nodeId, stepIdx: 0, answeredCurrent: false }; document.getElementById('story-overlay').classList.remove('hidden'); document.getElementById('story-overlay').classList.add('flex'); renderStory(); }
+function closeStory() { document.getElementById('story-overlay').classList.add('hidden'); document.getElementById('story-overlay').classList.remove('flex'); storySession = null; }
+function renderStory() {
+  const s = storySession;
+  document.getElementById('story-progress-bar').style.width = `${Math.round(((s.stepIdx + 1) / s.story.steps.length) * 100)}%`;
+  const stage = document.getElementById('story-stage');
+  let html = `<div class="text-center mb-4"><h1 class="text-2xl font-black text-[#3C3C3C]">${s.story.title}</h1><p class="text-sm font-bold text-[#777777]">${s.story.subtitle} (Tap French lines to hear audio)</p></div>`;
+  for (let i = 0; i <= s.stepIdx; i++) {
+    const st = s.story.steps[i];
+    if (st.type === 'narrator') html += `<div onclick="speakFrench('${st.fr.replace(/'/g, "\\'")}')" class="cursor-pointer bg-[#F7F7F7] border-2 border-[#E5E5E5] rounded-2xl p-4 animate-pop"><div class="font-extrabold text-base text-[#3C3C3C]">🔊 ${st.fr}</div><div class="text-xs font-bold text-[#777777] mt-1">${st.en}</div></div>`;
+    else if (st.type === 'dialogue') html += `<div class="flex items-start gap-3 animate-pop"><div class="shrink-0">${getCharacterSVG(st.char, 54)}</div><div onclick="speakFrench('${st.fr.replace(/'/g, "\\'")}')" class="cursor-pointer border-2 border-[#E5E5E5] hover:border-[#1CB0F6] rounded-2xl p-3.5 bg-white flex-1"><div class="text-xs font-black text-[#1CB0F6] uppercase mb-0.5">${st.name}</div><div class="font-extrabold text-base text-[#3C3C3C]">🔊 ${st.fr}</div><div class="text-xs font-bold text-[#777777] mt-1">${st.en}</div></div></div>`;
+    else if (st.type === 'question' && i === s.stepIdx) html += `<div class="border-2 border-[#CE82FF] bg-[#FAF3FF] rounded-2xl p-4 animate-pop"><div class="text-xs font-black uppercase text-[#A568CC] mb-1">Comprehension Check</div><div class="font-black text-base text-[#3C3C3C] mb-3">${st.prompt}</div><div class="flex flex-col gap-2">${st.options.map((opt, idx) => `<button onclick="answerStoryQ(${idx}, ${st.answer})" class="duo-card-choice p-3 text-left font-bold text-sm" id="sq-opt-${idx}">${opt}</button>`).join('')}</div></div>`;
+  }
+  stage.innerHTML = html;
+  const cur = s.story.steps[s.stepIdx];
+  document.getElementById('story-continue-btn').disabled = (cur.type === 'question' && !s.answeredCurrent);
+  if (cur.fr) speakFrench(cur.fr);
+  stage.scrollTop = stage.scrollHeight;
+}
+function answerStoryQ(idx, correctIdx) { const btn = document.getElementById(`sq-opt-${idx}`); if (idx === correctIdx) { playSound('correct'); btn.classList.add('correct'); storySession.answeredCurrent = true; document.getElementById('story-continue-btn').disabled = false; } else { playSound('wrong'); btn.classList.add('wrong'); } }
+function advanceStory() {
+  const s = storySession;
+  if (s.stepIdx < s.story.steps.length - 1) { s.stepIdx += 1; s.answeredCurrent = false; renderStory(); }
+  else { playSound('complete'); try { if (typeof confetti === 'function') confetti({ particleCount: 70, spread: 60 }); } catch (e) {} state.xp += 25; state.gems += 15; if (s.nodeId && !state.completedNodes.includes(s.nodeId)) state.completedNodes.push(s.nodeId); saveState(); closeStory(); renderAll(); showToast('📖 Story complete! +25 XP & +15 Gems'); }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!lessonSession) return;
+  if (e.key === 'Enter' && !e.shiftKey) { if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') e.preventDefault(); if (lessonSession.checked) nextQuestion(); else if (canCheckCurrent()) checkAnswer(); }
+  else if (!lessonSession.checked && lessonSession.queue[0]?.type === 'choice') { const num = parseInt(e.key, 10); if (num >= 1 && num <= lessonSession.queue[0].options.length) selectChoice(num - 1); }
+});
+window.onload = () => { renderAll(); };
+</script>
+</body>
+</html>
